@@ -10,12 +10,11 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-
 # ==============================================================================
 # 1. DROP-IN CODE SNIPPETS
 # ==============================================================================
 
-SNIPPET_AMP = '''
+SNIPPET_AMP = """
 # ------------------------------------------------------------------------------
 # SNIPPET 1: Automatic Mixed Precision (AMP) with GradScaler
 # Memory reduction: ~40-50% | Speedup: ~1.8x - 2.5x on Nvidia T4 Tensor Cores
@@ -50,9 +49,9 @@ for epoch in range(num_epochs):
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         scaler.step(optimizer)
         scaler.update()
-'''
+"""
 
-SNIPPET_GRAD_ACCUM = '''
+SNIPPET_GRAD_ACCUM = """
 # ------------------------------------------------------------------------------
 # SNIPPET 2: Gradient Accumulation (Simulate Large Batch on 16GB GPU)
 # Memory required: Batch 32 | Effective Batch Size: 32 x 8 = 256
@@ -77,9 +76,9 @@ for i, (inputs, targets) in enumerate(dataloader):
         scaler.step(optimizer)
         scaler.update()
         optimizer.zero_grad(set_to_none=True)
-'''
+"""
 
-SNIPPET_ATOMIC_CHECKPOINT = '''
+SNIPPET_ATOMIC_CHECKPOINT = """
 # ------------------------------------------------------------------------------
 # SNIPPET 3: Atomic Resilient Checkpointing (Safe against Colab Disconnects)
 # Writes to .tmp first, then renames atomically so .pt file is NEVER corrupted
@@ -104,9 +103,9 @@ def save_resilient_checkpoint(model, optimizer, epoch, path):
     }
     torch.save(state, tmp_path)
     os.replace(tmp_path, path)  # Atomic operation
-'''
+"""
 
-SNIPPET_MEMMAP_DATASET = '''
+SNIPPET_MEMMAP_DATASET = """
 # ------------------------------------------------------------------------------
 # SNIPPET 4: Memory-Mapped Scientific Dataset (Zero RAM Footprint)
 # Stream 50GB climate/spectroscopy matrices from disk with <100MB RAM
@@ -136,7 +135,7 @@ loader = DataLoader(
     pin_memory=True,       # Fast asynchronous DMA transfer to GPU
     persistent_workers=True
 )
-'''
+"""
 
 
 # ==============================================================================
@@ -243,8 +242,12 @@ def recommend_strategy(
         recs["activation_checkpointing"] = "Not needed"
 
     # Checkpoint strategy
-    recs["checkpointing"] = "Atomic save to Google Drive (/content/drive/MyDrive) with RNG capture"
-    recs["storage_pruning"] = "Keep top 3 checkpoints (prevent Google Drive / Kaggle quota overflow)"
+    recs["checkpointing"] = (
+        "Atomic save to Google Drive (/content/drive/MyDrive) with RNG capture"
+    )
+    recs["storage_pruning"] = (
+        "Keep top 3 checkpoints (prevent Google Drive / Kaggle quota overflow)"
+    )
 
     return recs
 
@@ -329,7 +332,9 @@ def print_quick_reference() -> None:
 
 if __name__ == "__main__":
     print_quick_reference()
-    sample_recs = recommend_strategy(dataset_size_gb=14.0, model_param_count_millions=30.0)
+    sample_recs = recommend_strategy(
+        dataset_size_gb=14.0, model_param_count_millions=30.0
+    )
     print("\n--- Strategy Recommendation Example ---")
     for k, v in sample_recs.items():
         print(f"  {k:20s}: {v}")

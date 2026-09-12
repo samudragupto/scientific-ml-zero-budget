@@ -3,11 +3,13 @@ Tests for Memmap and Streaming DataLoaders.
 """
 
 from pathlib import Path
+
 import torch
+
 from utils.data_streaming import (
-    generate_synthetic_climate_data,
     MemmapScientificDataset,
     StreamingScientificDataset,
+    generate_synthetic_climate_data,
     get_optimized_dataloader,
 )
 

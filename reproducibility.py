@@ -17,8 +17,10 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
+
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -52,10 +54,14 @@ def seed_everything(seed: int = 42, deterministic: bool = True) -> None:
         except Exception:
             pass
 
-    print(f"[Reproducibility] Master seed set to {seed} (Deterministic mode: {deterministic})")
+    print(
+        f"[Reproducibility] Master seed set to {seed} (Deterministic mode: {deterministic})"
+    )
 
 
-def capture_environment(output_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
+def capture_environment(
+    output_path: Optional[Union[str, Path]] = None,
+) -> Dict[str, Any]:
     """Audit system environment, package versions, and hardware specifications.
 
     Args:
@@ -69,9 +75,15 @@ def capture_environment(output_path: Optional[Union[str, Path]] = None) -> Dict[
         "python_version": sys.version,
         "os": platform.system(),
         "processor": platform.processor(),
-        "cpu_count_physical": (psutil.cpu_count(logical=False) if HAS_PSUTIL else (os.cpu_count() or 1)),
-        "cpu_count_logical": (psutil.cpu_count(logical=True) if HAS_PSUTIL else (os.cpu_count() or 1)),
-        "total_ram_gb": (round(psutil.virtual_memory().total / (1024**3), 2) if HAS_PSUTIL else 16.0),
+        "cpu_count_physical": (
+            psutil.cpu_count(logical=False) if HAS_PSUTIL else (os.cpu_count() or 1)
+        ),
+        "cpu_count_logical": (
+            psutil.cpu_count(logical=True) if HAS_PSUTIL else (os.cpu_count() or 1)
+        ),
+        "total_ram_gb": (
+            round(psutil.virtual_memory().total / (1024**3), 2) if HAS_PSUTIL else 16.0
+        ),
         "pytorch_version": torch.__version__,
         "cuda_available": torch.cuda.is_available(),
     }
@@ -101,9 +113,14 @@ def capture_environment(output_path: Optional[Union[str, Path]] = None) -> Dict[
         pip_freeze = subprocess.check_output(
             [sys.executable, "-m", "pip", "freeze"], stderr=subprocess.DEVNULL
         ).decode("utf-8")
-        env_info["pip_packages"] = [line for line in pip_freeze.splitlines() if line.strip()]
+        env_info["pip_packages"] = [
+            line for line in pip_freeze.splitlines() if line.strip()
+        ]
     except Exception:
-        env_info["pip_packages"] = [f"torch=={torch.__version__}", f"numpy=={np.__version__}"]
+        env_info["pip_packages"] = [
+            f"torch=={torch.__version__}",
+            f"numpy=={np.__version__}",
+        ]
 
     if output_path is not None:
         target = Path(output_path)

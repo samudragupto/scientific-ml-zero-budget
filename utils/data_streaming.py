@@ -13,12 +13,15 @@ from __future__ import annotations
 
 import math
 import os
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
+
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -29,9 +32,9 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 def generate_synthetic_climate_data(
     output_dir: Union[str, Path] = "./data",
     num_samples: int = 10000,
-    seq_len: int = 24,          # 24 hours lookback
-    num_stations: int = 8,       # 8 weather sensor stations
-    num_features: int = 4,      # Temperature, Humidity, Pressure, Wind Speed
+    seq_len: int = 24,  # 24 hours lookback
+    num_stations: int = 8,  # 8 weather sensor stations
+    num_features: int = 4,  # Temperature, Humidity, Pressure, Wind Speed
     seed: int = 42,
 ) -> Tuple[Path, Path]:
     """Generate realistic spatio-temporal atmospheric dataset on disk.
@@ -60,16 +63,23 @@ def generate_synthetic_climate_data(
     targ_path = output_path / "climate_targets_memmap.dat"
 
     # If already generated with identical sizes, skip re-generation
-    expected_bytes_x = num_samples * seq_len * num_stations * num_features * 4  # float32 = 4 bytes
+    expected_bytes_x = (
+        num_samples * seq_len * num_stations * num_features * 4
+    )  # float32 = 4 bytes
     if feat_path.exists() and feat_path.stat().st_size == expected_bytes_x:
         return feat_path, targ_path
 
     rng = np.random.RandomState(seed)
-    print(f"[Data Generator] Generating {num_samples} scientific climate time-series samples to disk...")
+    print(
+        f"[Data Generator] Generating {num_samples} scientific climate time-series samples to disk..."
+    )
 
     # Create memory-mapped arrays on disk to avoid holding full arrays in RAM
     shape_x = (num_samples, seq_len, num_stations, num_features)
-    shape_y = (num_samples, num_stations)  # predict next-step temperature across all stations
+    shape_y = (
+        num_samples,
+        num_stations,
+    )  # predict next-step temperature across all stations
 
     mm_x = np.memmap(feat_path, dtype="float32", mode="w+", shape=shape_x)
     mm_y = np.memmap(targ_path, dtype="float32", mode="w+", shape=shape_y)
@@ -81,7 +91,10 @@ def generate_synthetic_climate_data(
         batch_n = end - start
 
         # Time coordinate t in hours
-        t_batch = np.arange(start, end)[:, None, None, None] + np.arange(seq_len)[None, :, None, None]
+        t_batch = (
+            np.arange(start, end)[:, None, None, None]
+            + np.arange(seq_len)[None, :, None, None]
+        )
 
         # 1. Diurnal 24h harmonic cycle: sin(2*pi*t/24)
         diurnal = 10.0 * np.sin(2.0 * np.pi * t_batch / 24.0)
@@ -92,24 +105,36 @@ def generate_synthetic_climate_data(
         # 3. Base thermodynamic variables:
         # [0] Temp (°C), [1] Humidity (%), [2] Pressure (hPa), [3] Wind Speed (m/s)
         base_temp = 20.0 + diurnal + station_bias
-        noise = rng.normal(0.0, 1.2, size=(batch_n, seq_len, num_stations, num_features)).astype("float32")
+        noise = rng.normal(
+            0.0, 1.2, size=(batch_n, seq_len, num_stations, num_features)
+        ).astype("float32")
 
-        batch_x = np.zeros((batch_n, seq_len, num_stations, num_features), dtype="float32")
+        batch_x = np.zeros(
+            (batch_n, seq_len, num_stations, num_features), dtype="float32"
+        )
         if num_features >= 1:
-            batch_x[..., 0] = base_temp[..., 0] + noise[..., 0]                       # Temp
+            batch_x[..., 0] = base_temp[..., 0] + noise[..., 0]  # Temp
         if num_features >= 2:
-            batch_x[..., 1] = np.clip(70.0 - 1.5 * batch_x[..., 0] + noise[..., 1] * 3, 10, 100) # Humidity
+            batch_x[..., 1] = np.clip(
+                70.0 - 1.5 * batch_x[..., 0] + noise[..., 1] * 3, 10, 100
+            )  # Humidity
         if num_features >= 3:
-            batch_x[..., 2] = 1013.25 - 0.12 * station_bias[..., 0] + noise[..., 2]  # Pressure
+            batch_x[..., 2] = (
+                1013.25 - 0.12 * station_bias[..., 0] + noise[..., 2]
+            )  # Pressure
         if num_features >= 4:
-            batch_x[..., 3] = np.abs(5.0 + noise[..., 3] * 2.5)                       # Wind
+            batch_x[..., 3] = np.abs(5.0 + noise[..., 3] * 2.5)  # Wind
         for f in range(4, num_features):
             batch_x[..., f] = noise[..., f]
 
         # Target: Forecast station temperatures at t + seq_len
-        next_t = (end - 1) if end == num_samples else (start + batch_n)
         target_diurnal = 10.0 * np.sin(2.0 * np.pi * (t_batch[:, -1, :, 0] + 1) / 24.0)
-        target_temp = 20.0 + target_diurnal + station_bias[:, 0, :, 0] + rng.normal(0.0, 0.8, size=(batch_n, num_stations))
+        target_temp = (
+            20.0
+            + target_diurnal
+            + station_bias[:, 0, :, 0]
+            + rng.normal(0.0, 0.8, size=(batch_n, num_stations))
+        )
 
         mm_x[start:end] = batch_x
         mm_y[start:end] = target_temp.astype("float32")
@@ -120,7 +145,9 @@ def generate_synthetic_climate_data(
     del mm_x, mm_y
 
     file_size_mb = feat_path.stat().st_size / (1024 * 1024)
-    print(f"[Data Generator] Complete. Stored on disk: {file_size_mb:.1f} MB. System RAM consumed: negligible.")
+    print(
+        f"[Data Generator] Complete. Stored on disk: {file_size_mb:.1f} MB. System RAM consumed: negligible."
+    )
     return feat_path, targ_path
 
 
@@ -156,8 +183,12 @@ class MemmapScientificDataset(Dataset):
         self.dtype = dtype
 
         # Open in read-only copy-on-write mode
-        self.features = np.memmap(self.features_path, dtype=dtype, mode="r", shape=shape_x)
-        self.targets = np.memmap(self.targets_path, dtype=dtype, mode="r", shape=shape_y)
+        self.features = np.memmap(
+            self.features_path, dtype=dtype, mode="r", shape=shape_x
+        )
+        self.targets = np.memmap(
+            self.targets_path, dtype=dtype, mode="r", shape=shape_y
+        )
         self.num_samples = shape_x[0]
 
     def __len__(self) -> int:
@@ -205,13 +236,19 @@ class StreamingScientificDataset(IterableDataset):
             end_idx = self.num_samples
         else:
             # Distribute sample range evenly across worker threads
-            per_worker = int(math.ceil(self.num_samples / float(worker_info.num_workers)))
+            per_worker = int(
+                math.ceil(self.num_samples / float(worker_info.num_workers))
+            )
             start_idx = worker_info.id * per_worker
             end_idx = min(start_idx + per_worker, self.num_samples)
 
         # Open memmap inside the worker process
-        features = np.memmap(self.features_path, dtype=self.dtype, mode="r", shape=self.shape_x)
-        targets = np.memmap(self.targets_path, dtype=self.dtype, mode="r", shape=self.shape_y)
+        features = np.memmap(
+            self.features_path, dtype=self.dtype, mode="r", shape=self.shape_x
+        )
+        targets = np.memmap(
+            self.targets_path, dtype=self.dtype, mode="r", shape=self.shape_y
+        )
 
         # Stream chunk-by-chunk for optimal OS disk cache locality
         for chunk_start in range(start_idx, end_idx, self.chunk_size):
@@ -255,7 +292,9 @@ def get_optimized_dataloader(
             num_workers = 0
         else:
             # Colab/Linux: 2 workers matches 2-vCPU free instances without /dev/shm bus errors
-            logical_cores = (psutil.cpu_count(logical=True) if HAS_PSUTIL else os.cpu_count()) or 2
+            logical_cores = (
+                psutil.cpu_count(logical=True) if HAS_PSUTIL else os.cpu_count()
+            ) or 2
             num_workers = min(2, max(0, logical_cores // 2))
 
     # Note: IterableDataset does not support shuffle=True

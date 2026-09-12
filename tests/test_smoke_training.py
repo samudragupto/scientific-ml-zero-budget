@@ -4,9 +4,14 @@ CPU Smoke Test verifying end-to-end scientific model training loops.
 
 import torch
 import torch.nn as nn
-from torch.utils.data import TensorDataset, DataLoader
-from main_demo import EfficientScientificModel, BaselineHeavyScientificModel
-from utils.training_utils import AMPTrainer, GradientAccumulator, ScientificMetricsTracker
+from torch.utils.data import DataLoader, TensorDataset
+
+from main_demo import EfficientScientificModel
+from utils.training_utils import (
+    AMPTrainer,
+    GradientAccumulator,
+    ScientificMetricsTracker,
+)
 
 
 def test_efficient_model_forward_backward_cpu():
@@ -49,7 +54,11 @@ def test_amp_trainer_and_accumulator_cpu_loop():
     for idx, (bx, by) in enumerate(loader):
         should_step = accumulator.should_step(idx, total_batches)
         loss, preds = trainer.forward_backward_step(
-            bx, by, loss_fn=loss_fn, accumulate_grad=(not should_step), accumulation_steps=2
+            bx,
+            by,
+            loss_fn=loss_fn,
+            accumulate_grad=(not should_step),
+            accumulation_steps=2,
         )
         tracker.update(preds, by, loss.item(), bx.size(0))
 

@@ -12,11 +12,13 @@ import functools
 import gc
 import os
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -171,7 +173,9 @@ def profile_memory(
             if tracker.is_cuda:
                 print(f"  Peak GPU VRAM     : {peak_gpu_alloc:.2f} MB")
                 print(f"  Delta GPU Alloc   : {metrics['delta_gpu_alloc_mb']:.2f} MB")
-            print(f"  Current CPU RAM   : {end_cpu_ram:.2f} MB (Delta: +{metrics['delta_cpu_ram_mb']:.2f} MB)")
+            print(
+                f"  Current CPU RAM   : {end_cpu_ram:.2f} MB (Delta: +{metrics['delta_cpu_ram_mb']:.2f} MB)"
+            )
 
 
 def benchmark_efficiency(
@@ -209,7 +213,9 @@ def benchmark_efficiency(
             end_cpu = tracker.get_cpu_ram_mb()
             _, _, peak_gpu = tracker.get_gpu_ram_mb()
 
-            throughput = (num_samples / elapsed_sec) if num_samples and elapsed_sec > 0 else 0.0
+            throughput = (
+                (num_samples / elapsed_sec) if num_samples and elapsed_sec > 0 else 0.0
+            )
             hours_consumed = elapsed_sec / 3600.0
             cost_saved_usd = hours_consumed * hourly_cloud_cost_usd
 
@@ -217,6 +223,7 @@ def benchmark_efficiency(
                 "elapsed_seconds": elapsed_sec,
                 "peak_gpu_vram_mb": peak_gpu,
                 "cpu_ram_mb": end_cpu,
+                "delta_cpu_ram_mb": max(0.0, end_cpu - start_cpu),
                 "throughput_samples_per_sec": throughput,
                 "estimated_cloud_cost_saved_usd": cost_saved_usd,
             }
@@ -280,11 +287,15 @@ def estimate_oom_risk(
     total_estimated_mb = (param_mb + grad_mb + opt_mb + activation_mb) * safety_margin
 
     if tracker.is_cuda:
-        total_available_mb = (
-            torch.cuda.get_device_properties(tracker.device).total_memory / (1024.0 * 1024.0)
-        )
+        total_available_mb = torch.cuda.get_device_properties(
+            tracker.device
+        ).total_memory / (1024.0 * 1024.0)
     else:
-        total_available_mb = (psutil.virtual_memory().available / (1024.0 * 1024.0)) if HAS_PSUTIL else 8192.0
+        total_available_mb = (
+            (psutil.virtual_memory().available / (1024.0 * 1024.0))
+            if HAS_PSUTIL
+            else 8192.0
+        )
 
     is_safe = total_estimated_mb < (total_available_mb * 0.90)  # keep 10% safety buffer
 
@@ -295,7 +306,12 @@ def estimate_oom_risk(
         "parameters_mb": param_mb,
         "optimizer_states_mb": opt_mb,
         "estimated_activations_mb": activation_mb,
-        "recommended_max_batch_size": max(1, int(batch_size * (total_available_mb * 0.85 / max(1.0, total_estimated_mb)))),
+        "recommended_max_batch_size": max(
+            1,
+            int(
+                batch_size * (total_available_mb * 0.85 / max(1.0, total_estimated_mb))
+            ),
+        ),
     }
 
 
@@ -316,5 +332,7 @@ def print_gpu_hardware_summary(device: Optional[torch.device] = None) -> None:
     else:
         print("  CUDA Support        : Not Detected (Safe CPU Emulation Active)")
     print(f"  System CPU Cores    : {info['cpu_count_logical']} Logical")
-    print(f"  System RAM Available: {info['cpu_ram_available_gb']:.2f} GB / {info['cpu_ram_total_gb']:.2f} GB")
+    print(
+        f"  System RAM Available: {info['cpu_ram_available_gb']:.2f} GB / {info['cpu_ram_total_gb']:.2f} GB"
+    )
     print("=" * 70)

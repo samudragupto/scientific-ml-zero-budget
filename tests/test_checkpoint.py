@@ -3,11 +3,15 @@ Tests for atomic checkpoint saving, state dictionary recovery, and RNG persisten
 """
 
 from pathlib import Path
-import random
-import numpy as np
+
 import torch
 import torch.nn as nn
-from utils.checkpoint_manager import CheckpointManager, save_atomic_checkpoint, load_resilient_checkpoint
+
+from utils.checkpoint_manager import (
+    CheckpointManager,
+    load_resilient_checkpoint,
+    save_atomic_checkpoint,
+)
 
 
 def test_atomic_checkpoint_save_and_load(tmp_path: Path):
@@ -46,7 +50,9 @@ def test_atomic_checkpoint_save_and_load(tmp_path: Path):
 
 def test_checkpoint_manager_best_and_pruning(tmp_path: Path):
     """Verify CheckpointManager tracks best model and respects max_to_keep limit."""
-    manager = CheckpointManager(checkpoint_dir=tmp_path, max_to_keep=2, best_metric_mode="min")
+    manager = CheckpointManager(
+        checkpoint_dir=tmp_path, max_to_keep=2, best_metric_mode="min"
+    )
     model = nn.Linear(5, 1)
     opt = torch.optim.Adam(model.parameters())
 

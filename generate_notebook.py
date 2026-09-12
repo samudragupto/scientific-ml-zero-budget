@@ -23,16 +23,16 @@ def create_demo_notebook() -> None:
                 "\n",
                 "This interactive notebook demonstrates how to train real scientific machine learning models within the memory and time limits of **free-tier GPUs (Nvidia T4 16GB, Tesla P100)** without spending a single dollar on commercial cloud compute.\n",
                 "\n",
-                "---"
-            ]
+                "---",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 1. Environment Diagnostics & Setup\n",
-                "Let's detect our available GPU hardware, examine compute capability, and configure reproducible seeds."
-            ]
+                "Let's detect our available GPU hardware, examine compute capability, and configure reproducible seeds.",
+            ],
         },
         {
             "cell_type": "code",
@@ -53,8 +53,8 @@ def create_demo_notebook() -> None:
                 "from utils.memory_profiler import MemoryTracker, print_gpu_hardware_summary\n",
                 "\n",
                 "seed_everything(42, deterministic=True)\n",
-                "print_gpu_hardware_summary()\n"
-            ]
+                "print_gpu_hardware_summary()\n",
+            ],
         },
         {
             "cell_type": "markdown",
@@ -65,8 +65,8 @@ def create_demo_notebook() -> None:
                 "- Diurnal solar heating cycles (24h)\n",
                 "- Coupled thermodynamic properties (temperature vs humidity)\n",
                 "- Spatial covariance between neighboring weather monitoring stations\n",
-                "- **Zero external downloads required:** Generated deterministically on disk."
-            ]
+                "- **Zero external downloads required:** Generated deterministically on disk.",
+            ],
         },
         {
             "cell_type": "code",
@@ -93,16 +93,16 @@ def create_demo_notebook() -> None:
                 "    shape_y=(4000, 8)\n",
                 ")\n",
                 "dataloader = get_optimized_dataloader(dataset, batch_size=32, shuffle=True)\n",
-                "print(f'DataLoader initialized with {len(dataset)} scientific samples.')\n"
-            ]
+                "print(f'DataLoader initialized with {len(dataset)} scientific samples.')\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 3. Baseline Naive Training (FP32, Full Memory Load, No Checkpointing)\n",
-                "Notice how standard FP32 operations and dense layers consume significant memory and throughput."
-            ]
+                "Notice how standard FP32 operations and dense layers consume significant memory and throughput.",
+            ],
         },
         {
             "cell_type": "code",
@@ -141,16 +141,16 @@ def create_demo_notebook() -> None:
                 "print(f'Baseline FP32 Epoch Time: {elapsed:.2f}s | Throughput: {len(dataset)/elapsed:.1f} samples/s')\n",
                 "if tracker.is_cuda:\n",
                 "    print(f'Baseline Peak VRAM: {peak_vram:.1f} MB')\n",
-                "print(f'Validation MSE: {results_baseline[\"mse\"]:.4f}')\n"
-            ]
+                "print(f'Validation MSE: {results_baseline[\"mse\"]:.4f}')\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 4. Automatic Mixed Precision (AMP FP16) + GradScaler\n",
-                "AMP accelerates tensor core operations and cuts activation memory footprint in half."
-            ]
+                "AMP accelerates tensor core operations and cuts activation memory footprint in half.",
+            ],
         },
         {
             "cell_type": "code",
@@ -179,16 +179,16 @@ def create_demo_notebook() -> None:
                 "print(f'AMP FP16 Epoch Time: {elapsed_amp:.2f}s | Throughput: {len(dataset)/elapsed_amp:.1f} samples/s')\n",
                 "if tracker.is_cuda:\n",
                 "    print(f'AMP Peak VRAM: {peak_vram_amp:.1f} MB ({(1 - peak_vram_amp/peak_vram)*100:.1f}% VRAM saved!)')\n",
-                "print(f'Validation MSE: {results_amp[\"mse\"]:.4f}')\n"
-            ]
+                "print(f'Validation MSE: {results_amp[\"mse\"]:.4f}')\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 5. Gradient Accumulation (Simulating Batch 128 on 16GB GPU)\n",
-                "Achieve enterprise-grade mini-batch dynamics on a single free GPU by accumulating gradients across micro-steps."
-            ]
+                "Achieve enterprise-grade mini-batch dynamics on a single free GPU by accumulating gradients across micro-steps.",
+            ],
         },
         {
             "cell_type": "code",
@@ -214,16 +214,16 @@ def create_demo_notebook() -> None:
                 "        accumulation_steps=accum_steps\n",
                 "    )\n",
                 "\n",
-                "print(f'Successfully trained with Effective Batch Size: {32 * accum_steps} within Micro-Batch 32 VRAM!')\n"
-            ]
+                "print(f'Successfully trained with Effective Batch Size: {32 * accum_steps} within Micro-Batch 32 VRAM!')\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 6. Resilient Atomic Checkpointing\n",
-                "Test atomic saving and state recovery to survive unexpected Colab disconnects without corrupting files."
-            ]
+                "Test atomic saving and state recovery to survive unexpected Colab disconnects without corrupting files.",
+            ],
         },
         {
             "cell_type": "code",
@@ -247,16 +247,16 @@ def create_demo_notebook() -> None:
                 "# Simulate recovery\n",
                 "model_resumed = EfficientScientificModel().to(device)\n",
                 "resumed_epoch, best_metric, _ = manager.load_latest(model_resumed, device=device)\n",
-                "print(f'Resumed successfully! Epoch: {resumed_epoch}, Metric: {best_metric:.4f}')\n"
-            ]
+                "print(f'Resumed successfully! Epoch: {resumed_epoch}, Metric: {best_metric:.4f}')\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 7. Efficient Model Architecture (Depthwise Separable Convolutions + SE Blocks)\n",
-                "Cutting parameter count by >80% and inference latency by >3x."
-            ]
+                "Cutting parameter count by >80% and inference latency by >3x.",
+            ],
         },
         {
             "cell_type": "code",
@@ -278,16 +278,16 @@ def create_demo_notebook() -> None:
                 "elapsed_eff = time.perf_counter() - t0\n",
                 "res_eff = metrics.compute()\n",
                 "print(f'Efficient Model Epoch Time: {elapsed_eff:.2f}s | Throughput: {len(dataset)/elapsed_eff:.1f} samples/s')\n",
-                "print(f'Validation MSE: {res_eff[\"mse\"]:.4f}')\n"
-            ]
+                "print(f'Validation MSE: {res_eff[\"mse\"]:.4f}')\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 8. Benchmark Visualizations & Compute Savings\n",
-                "Displaying our 4-panel publication-grade benchmark comparisons."
-            ]
+                "Displaying our 4-panel publication-grade benchmark comparisons.",
+            ],
         },
         {
             "cell_type": "code",
@@ -300,16 +300,16 @@ def create_demo_notebook() -> None:
                 "\n",
                 "print_benchmark_tables()\n",
                 "generate_benchmark_plots('benchmark_comparison.png')\n",
-                "display(Image('benchmark_comparison.png'))\n"
-            ]
+                "display(Image('benchmark_comparison.png'))\n",
+            ],
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
                 "## 9. Compute Disclosure & Reproducibility Citation\n",
-                "Generate academic badge and disclosure statement for publication."
-            ]
+                "Generate academic badge and disclosure statement for publication.",
+            ],
         },
         {
             "cell_type": "code",
@@ -321,9 +321,9 @@ def create_demo_notebook() -> None:
                 "from IPython.display import Markdown\n",
                 "\n",
                 "badge_md = generate_compute_badge(platform_name='Google Colab Free (T4)', training_hours=0.5, cloud_cost_saved_usd=1.53)\n",
-                "display(Markdown(badge_md))\n"
-            ]
-        }
+                "display(Markdown(badge_md))\n",
+            ],
+        },
     ]
 
     notebook_data = {
@@ -332,7 +332,7 @@ def create_demo_notebook() -> None:
             "kernelspec": {
                 "display_name": "Python 3",
                 "language": "python",
-                "name": "python3"
+                "name": "python3",
             },
             "language_info": {
                 "codemirror_mode": {"name": "ipython", "version": 3},
@@ -341,11 +341,11 @@ def create_demo_notebook() -> None:
                 "name": "python",
                 "nbconvert_exporter": "python",
                 "pygments_lexer": "ipython3",
-                "version": "3.10.0"
-            }
+                "version": "3.10.0",
+            },
         },
         "nbformat": 4,
-        "nbformat_minor": 5
+        "nbformat_minor": 5,
     }
 
     nb_path = Path("main_demo.ipynb")

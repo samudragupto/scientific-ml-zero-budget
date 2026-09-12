@@ -10,7 +10,7 @@ Provides production-grade training abstractions optimized for free-tier GPUs:
 from __future__ import annotations
 
 import math
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -44,7 +44,9 @@ class AMPTrainer:
         """
         self.model = model
         self.optimizer = optimizer
-        self.device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = device or torch.device(
+            "cuda:0" if torch.cuda.is_available() else "cpu"
+        )
         self.is_cuda = self.device.type == "cuda"
         self.use_amp = use_amp and self.is_cuda
         self.max_grad_norm = max_grad_norm
@@ -89,7 +91,9 @@ class AMPTrainer:
 
         # Autocast context: cast operations like matmul & convs to FP16, reductions to FP32
         device_type = "cuda" if self.is_cuda else "cpu"
-        with torch.amp.autocast(device_type=device_type, dtype=self.amp_dtype, enabled=self.use_amp):
+        with torch.amp.autocast(
+            device_type=device_type, dtype=self.amp_dtype, enabled=self.use_amp
+        ):
             predictions = self.model(inputs)
             raw_loss = loss_fn(predictions, targets)
             # Normalize loss if using gradient accumulation
@@ -139,7 +143,9 @@ class GradientAccumulator:
             accumulation_steps: Number of micro-batches to accumulate before stepping.
         """
         if accumulation_steps < 1:
-            raise ValueError(f"accumulation_steps must be >= 1, got {accumulation_steps}")
+            raise ValueError(
+                f"accumulation_steps must be >= 1, got {accumulation_steps}"
+            )
         self.accumulation_steps = accumulation_steps
         self.step_count = 0
 
@@ -153,8 +159,8 @@ class GradientAccumulator:
         Returns:
             Boolean indicating if optimizer should step.
         """
-        is_accum_boundary = ((batch_idx + 1) % self.accumulation_steps == 0)
-        is_final_batch = ((batch_idx + 1) == total_batches)
+        is_accum_boundary = (batch_idx + 1) % self.accumulation_steps == 0
+        is_final_batch = (batch_idx + 1) == total_batches
         return is_accum_boundary or is_final_batch
 
 
@@ -182,7 +188,9 @@ def create_scientific_lr_scheduler(
     def lr_lambda(current_step: int) -> float:
         if current_step < warmup_steps:
             return float(current_step) / float(max(1, warmup_steps))
-        progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+        progress = float(current_step - warmup_steps) / float(
+            max(1, total_steps - warmup_steps)
+        )
         cosine_decay = 0.5 * (1.0 + math.cos(math.pi * progress))
         return min_lr_ratio + (1.0 - min_lr_ratio) * cosine_decay
 
@@ -236,7 +244,9 @@ class EarlyStopping:
             self.counter += 1
             self.is_best = False
             if self.verbose:
-                print(f"  [EarlyStopping] No improvement ({self.counter}/{self.patience} patience).")
+                print(
+                    f"  [EarlyStopping] No improvement ({self.counter}/{self.patience} patience)."
+                )
             if self.counter >= self.patience:
                 self.early_stop = True
                 return True
@@ -245,7 +255,9 @@ class EarlyStopping:
             self.counter = 0
             self.is_best = True
             if self.verbose:
-                print(f"  [EarlyStopping] Metric improved! Best score: {abs(self.best_score):.6f}")
+                print(
+                    f"  [EarlyStopping] Metric improved! Best score: {abs(self.best_score):.6f}"
+                )
 
         return False
 
@@ -264,7 +276,9 @@ class ScientificMetricsTracker:
         self.all_preds: List[torch.Tensor] = []
         self.all_targets: List[torch.Tensor] = []
 
-    def update(self, preds: torch.Tensor, targets: torch.Tensor, loss: float, batch_size: int) -> None:
+    def update(
+        self, preds: torch.Tensor, targets: torch.Tensor, loss: float, batch_size: int
+    ) -> None:
         """Accumulate predictions and targets for global metric calculation.
 
         Args:

@@ -8,9 +8,8 @@ Nvidia T4 and Tesla P100 free-tier accelerators.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,6 +17,7 @@ import pandas as pd
 
 try:
     import seaborn as sns
+
     HAS_SEABORN = True
 except ImportError:
     HAS_SEABORN = False
@@ -75,7 +75,9 @@ def print_benchmark_tables() -> None:
     dfs = get_hardware_benchmark_data()
     for hw_name, df in dfs.items():
         print("=" * 88)
-        print(f"       BENCHMARK RESULTS: {hw_name.upper().replace('_', ' ')} ACCELERATOR")
+        print(
+            f"       BENCHMARK RESULTS: {hw_name.upper().replace('_', ' ')} ACCELERATOR"
+        )
         print("=" * 88)
         header = f"{'Configuration':<46} | {'VRAM (MB)':<10} | {'RAM (MB)':<9} | {'Sec/Epoch':<9} | {'Speedup':<8}"
         print(header)
@@ -108,7 +110,11 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     if HAS_SEABORN:
         sns.set_theme(style="whitegrid", font_scale=1.0)
     else:
-        plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
+        plt.style.use(
+            "seaborn-v0_8-whitegrid"
+            if "seaborn-v0_8-whitegrid" in plt.style.available
+            else "default"
+        )
     plt.rcParams["font.sans-serif"] = "DejaVu Sans"
 
     fig, axes = plt.subplots(2, 2, figsize=(15, 11), dpi=300)
@@ -120,7 +126,13 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     )
 
     palette = ["#e74c3c", "#e67e22", "#3498db", "#2ecc71", "#9b59b6"]
-    short_labels = ["Baseline FP32", "+ Memmap", "+ AMP FP16", "+ Grad Accum", "+ Efficient Arch"]
+    short_labels = [
+        "Baseline FP32",
+        "+ Memmap",
+        "+ AMP FP16",
+        "+ Grad Accum",
+        "+ Efficient Arch",
+    ]
 
     # --------------------------------------------------------------------------
     # Panel 1: Peak Memory Footprint (VRAM vs System RAM)
@@ -129,14 +141,38 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     x_indices = np.arange(len(short_labels))
     bar_width = 0.35
 
-    ax1.bar(x_indices - bar_width / 2, t4_df["Peak_VRAM_MB"] / 1024.0, bar_width, label="Peak GPU VRAM (GB)", color="#3498db", alpha=0.9)
-    ax1.bar(x_indices + bar_width / 2, t4_df["Host_RAM_MB"] / 1024.0, bar_width, label="Host CPU RAM (GB)", color="#e67e22", alpha=0.9)
+    ax1.bar(
+        x_indices - bar_width / 2,
+        t4_df["Peak_VRAM_MB"] / 1024.0,
+        bar_width,
+        label="Peak GPU VRAM (GB)",
+        color="#3498db",
+        alpha=0.9,
+    )
+    ax1.bar(
+        x_indices + bar_width / 2,
+        t4_df["Host_RAM_MB"] / 1024.0,
+        bar_width,
+        label="Host CPU RAM (GB)",
+        color="#e67e22",
+        alpha=0.9,
+    )
 
-    ax1.axhline(15.0, color="red", linestyle="--", linewidth=1.5, label="Colab 16GB VRAM Limit")
-    ax1.axhline(12.7, color="darkorange", linestyle=":", linewidth=1.5, label="Colab 12GB Host RAM Limit")
+    ax1.axhline(
+        15.0, color="red", linestyle="--", linewidth=1.5, label="Colab 16GB VRAM Limit"
+    )
+    ax1.axhline(
+        12.7,
+        color="darkorange",
+        linestyle=":",
+        linewidth=1.5,
+        label="Colab 12GB Host RAM Limit",
+    )
 
     ax1.set_ylabel("Memory Consumption (GB)", fontweight="bold")
-    ax1.set_title("1. Memory Footprint (78.8% VRAM & 94.6% RAM Saved)", fontweight="bold")
+    ax1.set_title(
+        "1. Memory Footprint (78.8% VRAM & 94.6% RAM Saved)", fontweight="bold"
+    )
     ax1.set_xticks(x_indices)
     ax1.set_xticklabels(short_labels, rotation=18, ha="right", fontsize=9)
     ax1.set_ylim(0, 17)
@@ -146,7 +182,14 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     # Panel 2: Training Speedup & Throughput
     # --------------------------------------------------------------------------
     ax2 = axes[0, 1]
-    bars = ax2.bar(short_labels, t4_df["Throughput_Samples_Sec"], color=palette, alpha=0.88, edgecolor="black", linewidth=0.8)
+    bars = ax2.bar(
+        short_labels,
+        t4_df["Throughput_Samples_Sec"],
+        color=palette,
+        alpha=0.88,
+        edgecolor="black",
+        linewidth=0.8,
+    )
     for bar, speedup in zip(bars, t4_df["Speedup_Factor"]):
         height = bar.get_height()
         ax2.annotate(
@@ -171,15 +214,45 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     # --------------------------------------------------------------------------
     ax3 = axes[1, 0]
     effective_batches = [16, 32, 64, 128, 256, 512, 1024]
-    
+
     # Without Gradient Accumulation: Memory scales linearly until OOM
-    naive_memory = [2.2, 4.4, 8.8, 17.6, 35.2, 70.4, 140.8]  # OOMs past batch 64 on 16GB GPU!
+    naive_memory = [
+        2.2,
+        4.4,
+        8.8,
+        17.6,
+        35.2,
+        70.4,
+        140.8,
+    ]  # OOMs past batch 64 on 16GB GPU!
     # With Gradient Accumulation: Memory remains constant at micro-batch 32 footprint
     grad_accum_memory = [2.2, 4.4, 4.5, 4.55, 4.58, 4.60, 4.62]
 
-    ax3.plot(effective_batches, grad_accum_memory, "o-", color="#2ecc71", linewidth=2.5, markersize=7, label="With Grad Accumulation (Micro-batch 32)")
-    ax3.plot(effective_batches[:4], naive_memory[:4], "s--", color="#e74c3c", linewidth=2.0, markersize=7, label="Naive Batch Scaling (No Accumulation)")
-    ax3.axhline(15.0, color="red", linestyle="--", linewidth=1.5, label="Colab 16GB VRAM Limit (OOM Zone)")
+    ax3.plot(
+        effective_batches,
+        grad_accum_memory,
+        "o-",
+        color="#2ecc71",
+        linewidth=2.5,
+        markersize=7,
+        label="With Grad Accumulation (Micro-batch 32)",
+    )
+    ax3.plot(
+        effective_batches[:4],
+        naive_memory[:4],
+        "s--",
+        color="#e74c3c",
+        linewidth=2.0,
+        markersize=7,
+        label="Naive Batch Scaling (No Accumulation)",
+    )
+    ax3.axhline(
+        15.0,
+        color="red",
+        linestyle="--",
+        linewidth=1.5,
+        label="Colab 16GB VRAM Limit (OOM Zone)",
+    )
 
     ax3.fill_between(effective_batches, 15.0, 150.0, color="red", alpha=0.08)
     ax3.text(128, 20.0, "OOM CRASH ZONE", color="red", fontweight="bold", fontsize=11)
@@ -188,7 +261,9 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     ax3.set_yscale("log")
     ax3.set_xlabel("Effective Batch Size", fontweight="bold")
     ax3.set_ylabel("Peak VRAM Required (GB, Log Scale)", fontweight="bold")
-    ax3.set_title("3. Virtual Batch Scaling to 1024 on a Single Free GPU", fontweight="bold")
+    ax3.set_title(
+        "3. Virtual Batch Scaling to 1024 on a Single Free GPU", fontweight="bold"
+    )
     ax3.set_xticks(effective_batches)
     ax3.set_xticklabels([str(b) for b in effective_batches])
     ax3.legend(loc="center left", framealpha=0.9)
@@ -205,19 +280,37 @@ def generate_benchmark_plots(output_filepath: str = "benchmark_comparison.png") 
     loss_fp32 = base_curve + rng.normal(0, 0.006, size=len(epochs))
     loss_amp = base_curve + rng.normal(0, 0.006, size=len(epochs))
 
-    ax4.plot(epochs, loss_fp32, "b-", linewidth=2.0, alpha=0.8, label="Full Precision FP32 (Val MSE)")
-    ax4.plot(epochs, loss_amp, "g--", linewidth=2.0, alpha=0.9, label="Optimized AMP FP16 (Val MSE)")
+    ax4.plot(
+        epochs,
+        loss_fp32,
+        "b-",
+        linewidth=2.0,
+        alpha=0.8,
+        label="Full Precision FP32 (Val MSE)",
+    )
+    ax4.plot(
+        epochs,
+        loss_amp,
+        "g--",
+        linewidth=2.0,
+        alpha=0.9,
+        label="Optimized AMP FP16 (Val MSE)",
+    )
 
     ax4.set_xlabel("Training Epochs", fontweight="bold")
     ax4.set_ylabel("Validation Mean Squared Error (MSE)", fontweight="bold")
-    ax4.set_title("4. Convergence: Zero Degradation in Scientific Accuracy", fontweight="bold")
+    ax4.set_title(
+        "4. Convergence: Zero Degradation in Scientific Accuracy", fontweight="bold"
+    )
     ax4.legend(loc="upper right", framealpha=0.9)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.92)
     plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
     plt.close()
-    print(f"[Benchmark Plots] Saved high-resolution 4-panel figure to: {Path(output_filepath).resolve()}")
+    print(
+        f"[Benchmark Plots] Saved high-resolution 4-panel figure to: {Path(output_filepath).resolve()}"
+    )
 
 
 if __name__ == "__main__":

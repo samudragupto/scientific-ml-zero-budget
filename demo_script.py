@@ -58,7 +58,9 @@ def run_live_presentation_demo() -> None:
     )
 
     # Execute demonstration pipeline
-    results = run_scientific_ml_demonstration(num_samples=1000, epochs_per_phase=1, batch_size=32)
+    _ = run_scientific_ml_demonstration(
+        num_samples=1000, epochs_per_phase=1, batch_size=32
+    )
 
     print_speaker_banner(
         step_num=3,

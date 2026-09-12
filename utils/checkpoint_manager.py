@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import random
-import shutil
 import signal
 import sys
 from pathlib import Path
@@ -40,20 +39,26 @@ def setup_colab_drive_checkpointing(
         try:
             from google.colab import drive  # type: ignore
 
-            print("[Colab Setup] Mounting Google Drive to persist checkpoints across disconnections...")
+            print(
+                "[Colab Setup] Mounting Google Drive to persist checkpoints across disconnections..."
+            )
             drive.mount("/content/drive", force_remount=False)
             target_dir = Path("/content/drive/MyDrive") / drive_folder_name
             target_dir.mkdir(parents=True, exist_ok=True)
             print(f"[Colab Setup] Checkpoint directory established at: {target_dir}")
             return target_dir
         except Exception as e:
-            print(f"[Colab Setup Warning] Google Drive mount failed ({e}). Falling back to local content directory.")
+            print(
+                f"[Colab Setup Warning] Google Drive mount failed ({e}). Falling back to local content directory."
+            )
             local_dir = Path("/content/checkpoints")
             local_dir.mkdir(parents=True, exist_ok=True)
             return local_dir
 
     elif is_kaggle:
-        print("[Kaggle Setup] Kaggle kernel detected. Directing checkpoints to /kaggle/working/checkpoints...")
+        print(
+            "[Kaggle Setup] Kaggle kernel detected. Directing checkpoints to /kaggle/working/checkpoints..."
+        )
         target_dir = Path("/kaggle/working/checkpoints")
         target_dir.mkdir(parents=True, exist_ok=True)
         return target_dir
@@ -101,10 +106,16 @@ class CheckpointManager:
         self._emergency_payload: Optional[Dict[str, Any]] = None
 
         def emergency_signal_handler(signum: int, frame: Any) -> None:
-            sig_name = signal.Signals(signum).name if hasattr(signal, "Signals") else str(signum)
+            sig_name = (
+                signal.Signals(signum).name
+                if hasattr(signal, "Signals")
+                else str(signum)
+            )
             print(f"\n[EMERGENCY] Caught preemption/termination signal: {sig_name}!")
             if self._emergency_payload is not None:
-                emergency_path = self.checkpoint_dir / f"{self.project_name}_emergency_preempt.pt"
+                emergency_path = (
+                    self.checkpoint_dir / f"{self.project_name}_emergency_preempt.pt"
+                )
                 print(f"[EMERGENCY] Flushed emergency checkpoint to {emergency_path}")
                 save_atomic_checkpoint(self._emergency_payload, emergency_path)
             sys.exit(0)
@@ -145,7 +156,11 @@ class CheckpointManager:
     ) -> Dict[str, Any]:
         """Capture complete model, optimizer, scheduler, and RNG states."""
         # Unpack model in case of DataParallel or DDP wrapper
-        model_state = model.module.state_dict() if hasattr(model, "module") else model.state_dict()
+        model_state = (
+            model.module.state_dict()
+            if hasattr(model, "module")
+            else model.state_dict()
+        )
 
         rng_states: Dict[str, Any] = {
             "python_random": random.getstate(),
@@ -160,7 +175,9 @@ class CheckpointManager:
             "metric_val": metric_val,
             "model_state_dict": model_state,
             "optimizer_state_dict": optimizer.state_dict(),
-            "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
+            "scheduler_state_dict": scheduler.state_dict()
+            if scheduler is not None
+            else None,
             "rng_states": rng_states,
             "metadata": extra_metadata or {},
         }
@@ -222,7 +239,9 @@ class CheckpointManager:
             best_path = self.checkpoint_dir / f"{self.project_name}_best.pt"
             save_atomic_checkpoint(payload, best_path)
             self.best_checkpoint_path = best_path
-            print(f"  [Checkpoint] New best model saved! (Metric: {metric_val:.6f}) -> {best_path.name}")
+            print(
+                f"  [Checkpoint] New best model saved! (Metric: {metric_val:.6f}) -> {best_path.name}"
+            )
 
         # 4. Prune older checkpoints to prevent disk quota exhaustion on Colab/Kaggle
         self._prune_old_checkpoints()
@@ -233,7 +252,11 @@ class CheckpointManager:
         """Prune excess checkpoints while protecting best and latest."""
         while len(self.saved_checkpoints) > self.max_to_keep:
             oldest = self.saved_checkpoints.pop(0)
-            if oldest.exists() and "best" not in oldest.name and "latest" not in oldest.name:
+            if (
+                oldest.exists()
+                and "best" not in oldest.name
+                and "latest" not in oldest.name
+            ):
                 try:
                     oldest.unlink()
                 except OSError:
@@ -254,11 +277,15 @@ class CheckpointManager:
         latest_path = self.checkpoint_dir / f"{self.project_name}_latest.pt"
         if not latest_path.exists():
             # Check for any epoch checkpoint
-            candidates = sorted(list(self.checkpoint_dir.glob(f"{self.project_name}_epoch_*.pt")))
+            candidates = sorted(
+                list(self.checkpoint_dir.glob(f"{self.project_name}_epoch_*.pt"))
+            )
             if candidates:
                 latest_path = candidates[-1]
             else:
-                print(f"[Checkpoint] No existing checkpoint found in {self.checkpoint_dir}. Starting fresh.")
+                print(
+                    f"[Checkpoint] No existing checkpoint found in {self.checkpoint_dir}. Starting fresh."
+                )
                 return 0, float("inf"), {}
 
         return load_resilient_checkpoint(
@@ -289,7 +316,7 @@ def save_atomic_checkpoint(payload: Dict[str, Any], target_path: Path) -> None:
     except Exception as e:
         if tmp_path.exists():
             tmp_path.unlink()
-        raise IOError(f"Atomic checkpoint save failed for {target_path}: {e}") from e
+        raise OSError(f"Atomic checkpoint save failed for {target_path}: {e}") from e
 
 
 def load_resilient_checkpoint(
@@ -354,5 +381,7 @@ def load_resilient_checkpoint(
     metric_val = checkpoint.get("metric_val", 0.0)
     metadata = checkpoint.get("metadata", {})
 
-    print(f"[Checkpoint] Successfully resumed from {path.name} (Epoch: {epoch}, Metric: {metric_val:.6f})")
+    print(
+        f"[Checkpoint] Successfully resumed from {path.name} (Epoch: {epoch}, Metric: {metric_val:.6f})"
+    )
     return epoch, metric_val, metadata

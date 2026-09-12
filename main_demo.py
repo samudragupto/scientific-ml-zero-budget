@@ -17,13 +17,11 @@ constrained hardware:
 
 from __future__ import annotations
 
-import os
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -42,16 +40,14 @@ from utils.data_streaming import (
 from utils.memory_profiler import MemoryTracker, print_gpu_hardware_summary
 from utils.training_utils import (
     AMPTrainer,
-    EarlyStopping,
     GradientAccumulator,
     ScientificMetricsTracker,
-    create_scientific_lr_scheduler,
 )
-
 
 # ==============================================================================
 # SECTION F: MODEL ARCHITECTURES (BASELINE VS EFFICIENT SCIENTIFIC NETWORKS)
 # ==============================================================================
+
 
 class BaselineHeavyScientificModel(nn.Module):
     """Naive, dense convolutional & feedforward network for spatio-temporal forecasting.
@@ -60,13 +56,15 @@ class BaselineHeavyScientificModel(nn.Module):
     and large intermediate activation memory tensors.
     """
 
-    def __init__(self, in_features: int = 4, seq_len: int = 24, num_stations: int = 8) -> None:
+    def __init__(
+        self, in_features: int = 4, seq_len: int = 24, num_stations: int = 8
+    ) -> None:
         super().__init__()
         # Input shape: (Batch, Seq_Len, Stations, Features) -> permuted to (Batch, In_Channels, Seq_Len, Stations)
         self.conv1 = nn.Conv2d(in_features, 128, kernel_size=(3, 3), padding=1)
         self.conv2 = nn.Conv2d(128, 256, kernel_size=(3, 3), padding=1)
         self.conv3 = nn.Conv2d(256, 256, kernel_size=(3, 3), padding=1)
-        
+
         flat_dim = 256 * seq_len * num_stations
         self.fc1 = nn.Linear(flat_dim, 512)
         self.fc2 = nn.Linear(512, num_stations)
@@ -115,10 +113,21 @@ class DepthwiseSeparableConv2d(nn.Module):
     Reduces computational FLOPs and parameter memory by 8x to 9x!
     """
 
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3, padding: int = 1) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        padding: int = 1,
+    ) -> None:
         super().__init__()
         self.depthwise = nn.Conv2d(
-            in_channels, in_channels, kernel_size=kernel_size, padding=padding, groups=in_channels, bias=False
+            in_channels,
+            in_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            groups=in_channels,
+            bias=False,
         )
         self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self.bn = nn.BatchNorm2d(out_channels)
@@ -137,7 +146,9 @@ class EfficientScientificModel(nn.Module):
     Inference speedup: ~3.5x
     """
 
-    def __init__(self, in_features: int = 4, seq_len: int = 24, num_stations: int = 8) -> None:
+    def __init__(
+        self, in_features: int = 4, seq_len: int = 24, num_stations: int = 8
+    ) -> None:
         super().__init__()
         # 1. Efficient feature extraction
         self.entry_conv = nn.Conv2d(in_features, 32, kernel_size=1, bias=False)
@@ -170,6 +181,7 @@ class EfficientScientificModel(nn.Module):
 # MAIN DEMONSTRATION WORKFLOW
 # ==============================================================================
 
+
 def run_scientific_ml_demonstration(
     num_samples: int = 4000,
     epochs_per_phase: int = 2,
@@ -199,7 +211,9 @@ def run_scientific_ml_demonstration(
         shape_x=(num_samples, 24, 8, 4),
         shape_y=(num_samples, 8),
     )
-    dataloader = get_optimized_dataloader(dataset, batch_size=batch_size, shuffle=True, device=device)
+    dataloader = get_optimized_dataloader(
+        dataset, batch_size=batch_size, shuffle=True, device=device
+    )
     loss_fn = nn.MSELoss()
 
     benchmark_summary: Dict[str, Dict[str, float]] = {}
@@ -218,7 +232,7 @@ def run_scientific_ml_demonstration(
     t0 = time.perf_counter()
     metrics_calc = ScientificMetricsTracker()
 
-    for epoch in range(epochs_per_phase):
+    for _epoch in range(epochs_per_phase):
         model_baseline.train()
         for x_b, y_b in dataloader:
             x_b, y_b = x_b.to(device), y_b.to(device)
@@ -237,8 +251,12 @@ def run_scientific_ml_demonstration(
     throughput_baseline = (num_samples * epochs_per_phase) / max(0.001, t_baseline)
     res_baseline = metrics_calc.compute()
 
-    print(f"  [Baseline] Completed in {t_baseline:.2f}s | Throughput: {throughput_baseline:.1f} samples/s")
-    print(f"  [Baseline] Validation MSE: {res_baseline['mse']:.4f} | R2: {res_baseline['r2']:.4f}")
+    print(
+        f"  [Baseline] Completed in {t_baseline:.2f}s | Throughput: {throughput_baseline:.1f} samples/s"
+    )
+    print(
+        f"  [Baseline] Validation MSE: {res_baseline['mse']:.4f} | R2: {res_baseline['r2']:.4f}"
+    )
     if tracker_baseline.is_cuda:
         print(f"  [Baseline] Peak GPU VRAM: {peak_gpu_baseline:.1f} MB")
 
@@ -261,17 +279,21 @@ def run_scientific_ml_demonstration(
     print("=" * 78)
     model_amp = BaselineHeavyScientificModel().to(device)
     opt_amp = AdamW(model_amp.parameters(), lr=1e-3)
-    amp_trainer = AMPTrainer(model=model_amp, optimizer=opt_amp, device=device, use_amp=True)
+    amp_trainer = AMPTrainer(
+        model=model_amp, optimizer=opt_amp, device=device, use_amp=True
+    )
     tracker_amp = MemoryTracker(device=device)
     tracker_amp.reset()
 
     t0 = time.perf_counter()
     metrics_calc.reset()
 
-    for epoch in range(epochs_per_phase):
+    for _epoch in range(epochs_per_phase):
         model_amp.train()
         for x_b, y_b in dataloader:
-            raw_loss, preds = amp_trainer.forward_backward_step(x_b, y_b, loss_fn=loss_fn)
+            raw_loss, preds = amp_trainer.forward_backward_step(
+                x_b, y_b, loss_fn=loss_fn
+            )
             metrics_calc.update(preds, y_b, raw_loss.item(), x_b.size(0))
 
     if tracker_amp.is_cuda:
@@ -281,11 +303,17 @@ def run_scientific_ml_demonstration(
     throughput_amp = (num_samples * epochs_per_phase) / max(0.001, t_amp)
     res_amp = metrics_calc.compute()
 
-    print(f"  [AMP FP16] Completed in {t_amp:.2f}s | Throughput: {throughput_amp:.1f} samples/s")
-    print(f"  [AMP FP16] Validation MSE: {res_amp['mse']:.4f} | R2: {res_amp['r2']:.4f}")
+    print(
+        f"  [AMP FP16] Completed in {t_amp:.2f}s | Throughput: {throughput_amp:.1f} samples/s"
+    )
+    print(
+        f"  [AMP FP16] Validation MSE: {res_amp['mse']:.4f} | R2: {res_amp['r2']:.4f}"
+    )
     if tracker_amp.is_cuda:
         vram_reduction = (1.0 - (peak_gpu_amp / max(1.0, peak_gpu_baseline))) * 100.0
-        print(f"  [AMP FP16] Peak GPU VRAM: {peak_gpu_amp:.1f} MB ({vram_reduction:.1f}% VRAM Reduction!)")
+        print(
+            f"  [AMP FP16] Peak GPU VRAM: {peak_gpu_amp:.1f} MB ({vram_reduction:.1f}% VRAM Reduction!)"
+        )
 
     benchmark_summary["AMP_FP16"] = {
         "time_sec": t_amp,
@@ -307,7 +335,9 @@ def run_scientific_ml_demonstration(
     opt_accum = AdamW(model_accum.parameters(), lr=1e-3)
     accum_steps = 4  # Micro-batch 32 * 4 = Effective Batch 128
     accumulator = GradientAccumulator(accumulation_steps=accum_steps)
-    amp_accum_trainer = AMPTrainer(model=model_accum, optimizer=opt_accum, device=device, use_amp=True)
+    amp_accum_trainer = AMPTrainer(
+        model=model_accum, optimizer=opt_accum, device=device, use_amp=True
+    )
     tracker_accum = MemoryTracker(device=device)
     tracker_accum.reset()
 
@@ -315,7 +345,7 @@ def run_scientific_ml_demonstration(
     metrics_calc.reset()
     total_batches = len(dataloader)
 
-    for epoch in range(epochs_per_phase):
+    for _epoch in range(epochs_per_phase):
         model_accum.train()
         for idx, (x_b, y_b) in enumerate(dataloader):
             should_step = accumulator.should_step(idx, total_batches)
@@ -335,10 +365,16 @@ def run_scientific_ml_demonstration(
     throughput_accum = (num_samples * epochs_per_phase) / max(0.001, t_accum)
     res_accum = metrics_calc.compute()
 
-    print(f"  [Grad Accum] Effective Batch: {batch_size * accum_steps} | Time: {t_accum:.2f}s")
-    print(f"  [Grad Accum] Validation MSE: {res_accum['mse']:.4f} | R2: {res_accum['r2']:.4f}")
+    print(
+        f"  [Grad Accum] Effective Batch: {batch_size * accum_steps} | Time: {t_accum:.2f}s"
+    )
+    print(
+        f"  [Grad Accum] Validation MSE: {res_accum['mse']:.4f} | R2: {res_accum['r2']:.4f}"
+    )
     if tracker_accum.is_cuda:
-        print(f"  [Grad Accum] Peak GPU VRAM: {peak_gpu_accum:.1f} MB (Batch 128 simulated within Batch 32 footprint!)")
+        print(
+            f"  [Grad Accum] Peak GPU VRAM: {peak_gpu_accum:.1f} MB (Batch 128 simulated within Batch 32 footprint!)"
+        )
 
     benchmark_summary["Grad_Accum_128"] = {
         "time_sec": t_accum,
@@ -357,20 +393,28 @@ def run_scientific_ml_demonstration(
     print("DEMO D: RESILIENT CHECKPOINTING & COLAB RECOVERY SIMULATION")
     print("=" * 78)
     ckpt_dir = Path("./demo_checkpoints")
-    ckpt_manager = CheckpointManager(checkpoint_dir=ckpt_dir, project_name="sciml_climate", max_to_keep=2)
+    ckpt_manager = CheckpointManager(
+        checkpoint_dir=ckpt_dir, project_name="sciml_climate", max_to_keep=2
+    )
 
     model_ckpt = EfficientScientificModel().to(device)
     opt_ckpt = AdamW(model_ckpt.parameters(), lr=1e-3)
 
     print("  -> Simulating training epoch 1 and saving atomic checkpoint...")
-    saved_path = ckpt_manager.save(model_ckpt, opt_ckpt, epoch=1, metric_val=0.452, is_best=True)
+    saved_path = ckpt_manager.save(
+        model_ckpt, opt_ckpt, epoch=1, metric_val=0.452, is_best=True
+    )
     print(f"  -> Checkpoint successfully persisted: {saved_path.name}")
 
     print("  -> Simulating sudden Colab runtime termination & recovery...")
     resumed_model = EfficientScientificModel().to(device)
     resumed_opt = AdamW(resumed_model.parameters(), lr=1e-3)
-    start_ep, metric_val, _ = ckpt_manager.load_latest(resumed_model, resumed_opt, device=device)
-    print(f"  -> Successfully resumed at epoch {start_ep} with best metric {metric_val:.4f}!")
+    start_ep, metric_val, _ = ckpt_manager.load_latest(
+        resumed_model, resumed_opt, device=device
+    )
+    print(
+        f"  -> Successfully resumed at epoch {start_ep} with best metric {metric_val:.4f}!"
+    )
 
     del model_ckpt, opt_ckpt, resumed_model, resumed_opt
 
@@ -382,17 +426,21 @@ def run_scientific_ml_demonstration(
     print("=" * 78)
     model_efficient = EfficientScientificModel().to(device)
     opt_eff = AdamW(model_efficient.parameters(), lr=1e-3)
-    trainer_eff = AMPTrainer(model=model_efficient, optimizer=opt_eff, device=device, use_amp=True)
+    trainer_eff = AMPTrainer(
+        model=model_efficient, optimizer=opt_eff, device=device, use_amp=True
+    )
     tracker_eff = MemoryTracker(device=device)
     tracker_eff.reset()
 
     t0 = time.perf_counter()
     metrics_calc.reset()
 
-    for epoch in range(epochs_per_phase):
+    for _epoch in range(epochs_per_phase):
         model_efficient.train()
         for x_b, y_b in dataloader:
-            raw_loss, preds = trainer_eff.forward_backward_step(x_b, y_b, loss_fn=loss_fn)
+            raw_loss, preds = trainer_eff.forward_backward_step(
+                x_b, y_b, loss_fn=loss_fn
+            )
             metrics_calc.update(preds, y_b, raw_loss.item(), x_b.size(0))
 
     if tracker_eff.is_cuda:
@@ -402,17 +450,24 @@ def run_scientific_ml_demonstration(
     throughput_eff = (num_samples * epochs_per_phase) / max(0.001, t_eff)
     res_eff = metrics_calc.compute()
 
-    print(f"  [Efficient Arch] Completed in {t_eff:.2f}s | Throughput: {throughput_eff:.1f} samples/s")
-    print(f"  [Efficient Arch] Validation MSE: {res_eff['mse']:.4f} | R2: {res_eff['r2']:.4f}")
+    print(
+        f"  [Efficient Arch] Completed in {t_eff:.2f}s | Throughput: {throughput_eff:.1f} samples/s"
+    )
+    print(
+        f"  [Efficient Arch] Validation MSE: {res_eff['mse']:.4f} | R2: {res_eff['r2']:.4f}"
+    )
     if tracker_eff.is_cuda:
         print(f"  [Efficient Arch] Peak GPU VRAM: {peak_gpu_eff:.1f} MB")
 
     # Demonstrate weight pruning basics
     print("  -> Applying 30% L1 unstructured weight pruning to linear layers...")
     import torch.nn.utils.prune as prune
+
     prune.l1_unstructured(model_efficient.classifier[0], name="weight", amount=0.30)
     prune.remove(model_efficient.classifier[0], "weight")
-    print("  -> Pruning complete. Sparsity achieved without losing inference compatibility.")
+    print(
+        "  -> Pruning complete. Sparsity achieved without losing inference compatibility."
+    )
 
     benchmark_summary["Efficient_DSConv_SE"] = {
         "time_sec": t_eff,
@@ -427,12 +482,16 @@ def run_scientific_ml_demonstration(
     print("\n" + "=" * 78)
     print("DEMO G: SCIENTIFIC ML ZERO-BUDGET FINAL BENCHMARK SUMMARY")
     print("=" * 78)
-    print(f"{'Method / Configuration':<30} | {'Throughput':<15} | {'Relative Speed':<15} | {'Val MSE':<10}")
+    print(
+        f"{'Method / Configuration':<30} | {'Throughput':<15} | {'Relative Speed':<15} | {'Val MSE':<10}"
+    )
     print("-" * 78)
     baseline_thru = benchmark_summary["Baseline_FP32"]["throughput"]
     for method, d in benchmark_summary.items():
         speedup = d["throughput"] / max(0.001, baseline_thru)
-        print(f"{method:<30} | {d['throughput']:<11.1f} s/s | {speedup:<11.2f}x speedup | {d['mse']:<8.4f}")
+        print(
+            f"{method:<30} | {d['throughput']:<11.1f} s/s | {speedup:<11.2f}x speedup | {d['mse']:<8.4f}"
+        )
     print("=" * 78)
 
     return benchmark_summary

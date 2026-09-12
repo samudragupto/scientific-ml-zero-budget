@@ -3,7 +3,9 @@ Tests for deterministic synthetic scientific data generation and memmap integrit
 """
 
 from pathlib import Path
+
 import numpy as np
+
 from utils.data_streaming import generate_synthetic_climate_data
 
 
@@ -27,8 +29,15 @@ def test_data_generation_shapes_and_values(tmp_path: Path):
     assert targ_path.exists()
 
     # Verify memory map roundtrip
-    x = np.memmap(feat_path, dtype="float32", mode="r", shape=(num_samples, seq_len, num_stations, num_features))
-    y = np.memmap(targ_path, dtype="float32", mode="r", shape=(num_samples, num_stations))
+    x = np.memmap(
+        feat_path,
+        dtype="float32",
+        mode="r",
+        shape=(num_samples, seq_len, num_stations, num_features),
+    )
+    y = np.memmap(
+        targ_path, dtype="float32", mode="r", shape=(num_samples, num_stations)
+    )
 
     assert x.shape == (200, 12, 4, 4)
     assert y.shape == (200, 4)

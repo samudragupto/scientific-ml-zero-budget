@@ -13,23 +13,29 @@ sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 import torch
 import torch.nn as nn
-from utils import (
-    generate_synthetic_climate_data,
-    MemmapScientificDataset,
-    get_optimized_dataloader,
-    AMPTrainer,
-    GradientAccumulator,
-    CheckpointManager,
-)
+
 from main_demo import EfficientScientificModel
+from utils import (
+    AMPTrainer,
+    CheckpointManager,
+    GradientAccumulator,
+    MemmapScientificDataset,
+    generate_synthetic_climate_data,
+    get_optimized_dataloader,
+)
+
 
 def quick_start():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"--- Scientific ML Zero Budget Quickstart on {device} ---")
 
     # Data setup
-    feat, targ = generate_synthetic_climate_data(output_dir="./quickstart_data", num_samples=1000)
-    dataset = MemmapScientificDataset(feat, targ, shape_x=(1000, 24, 8, 4), shape_y=(1000, 8))
+    feat, targ = generate_synthetic_climate_data(
+        output_dir="./quickstart_data", num_samples=1000
+    )
+    dataset = MemmapScientificDataset(
+        feat, targ, shape_x=(1000, 24, 8, 4), shape_y=(1000, 8)
+    )
     loader = get_optimized_dataloader(dataset, batch_size=32)
 
     # Model & optimizer
@@ -39,8 +45,12 @@ def quick_start():
 
     # Utilities: AMP Trainer, 4-step Gradient Accumulation, and Atomic Checkpoints
     trainer = AMPTrainer(model=model, optimizer=optimizer, device=device, use_amp=True)
-    accumulator = GradientAccumulator(accumulation_steps=4)  # 32 * 4 = virtual batch 128
-    checkpointer = CheckpointManager(checkpoint_dir="./quickstart_checkpoints", project_name="sciml_quick")
+    accumulator = GradientAccumulator(
+        accumulation_steps=4
+    )  # 32 * 4 = virtual batch 128
+    checkpointer = CheckpointManager(
+        checkpoint_dir="./quickstart_checkpoints", project_name="sciml_quick"
+    )
 
     print("Training 1 epoch with AMP and virtual batch size 128...")
     model.train()
@@ -50,7 +60,11 @@ def quick_start():
     for i, (bx, by) in enumerate(loader):
         should_step = accumulator.should_step(i, total_batches)
         loss, preds = trainer.forward_backward_step(
-            bx, by, loss_fn=loss_fn, accumulate_grad=(not should_step), accumulation_steps=4
+            bx,
+            by,
+            loss_fn=loss_fn,
+            accumulate_grad=(not should_step),
+            accumulation_steps=4,
         )
         total_loss += loss.item() * bx.size(0)
 
@@ -58,8 +72,11 @@ def quick_start():
     print(f"Epoch finished. Loss: {mean_loss:.4f}")
 
     # Save atomic checkpoint
-    saved_path = checkpointer.save(model, optimizer, epoch=1, metric_val=mean_loss, is_best=True)
+    saved_path = checkpointer.save(
+        model, optimizer, epoch=1, metric_val=mean_loss, is_best=True
+    )
     print(f"Checkpoint safely written to: {saved_path}")
+
 
 if __name__ == "__main__":
     quick_start()

@@ -13,16 +13,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 import torch
 import torch.nn as nn
-from utils.data_streaming import generate_synthetic_climate_data, MemmapScientificDataset, get_optimized_dataloader
+
 from main_demo import EfficientScientificModel
+from utils.data_streaming import (
+    MemmapScientificDataset,
+    generate_synthetic_climate_data,
+    get_optimized_dataloader,
+)
+
 
 def run_minimal():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Running Minimal Scientific ML Example on: {device}")
 
     # 1. Generate 500 samples of spatio-temporal atmospheric data on disk
-    feat_p, targ_p = generate_synthetic_climate_data(output_dir="./data_minimal", num_samples=500)
-    dataset = MemmapScientificDataset(feat_p, targ_p, shape_x=(500, 24, 8, 4), shape_y=(500, 8))
+    feat_p, targ_p = generate_synthetic_climate_data(
+        output_dir="./data_minimal", num_samples=500
+    )
+    dataset = MemmapScientificDataset(
+        feat_p, targ_p, shape_x=(500, 24, 8, 4), shape_y=(500, 8)
+    )
     loader = get_optimized_dataloader(dataset, batch_size=32)
 
     # 2. Instantiate efficient scientific model (DS-Conv + SE attention)
@@ -43,6 +53,7 @@ def run_minimal():
         total_loss += loss.item() * x.size(0)
 
     print(f"Epoch Complete! Mean MSE Loss: {total_loss / len(dataset):.4f}")
+
 
 if __name__ == "__main__":
     run_minimal()

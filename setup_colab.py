@@ -8,7 +8,6 @@ configures persistent directories, and validates CUDA tensor core availability.
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -62,18 +61,30 @@ def setup_environment(
             compute_cap = torch.cuda.get_device_capability(0)
             print(f"[CUDA Status] SUCCESS! Detected GPU: {device_name}")
             print(f"[CUDA Status] Total Available VRAM: {vram_gb:.2f} GB")
-            print(f"[CUDA Status] Compute Architecture: SM {compute_cap[0]}.{compute_cap[1]}")
+            print(
+                f"[CUDA Status] Compute Architecture: SM {compute_cap[0]}.{compute_cap[1]}"
+            )
 
             if compute_cap[0] >= 7:
-                print("  -> Tensor Cores active! Mixed Precision (AMP FP16) fully accelerated.")
+                print(
+                    "  -> Tensor Cores active! Mixed Precision (AMP FP16) fully accelerated."
+                )
             if compute_cap[0] >= 8:
-                print("  -> Ampere+ architecture detected: Native BF16 support available.")
+                print(
+                    "  -> Ampere+ architecture detected: Native BF16 support available."
+                )
         else:
-            print("[CUDA Status] WARNING: No GPU detected! Running in CPU emulation mode.")
+            print(
+                "[CUDA Status] WARNING: No GPU detected! Running in CPU emulation mode."
+            )
             if in_colab:
-                print("  -> Colab Instruction: Go to 'Runtime' -> 'Change runtime type' -> Select 'T4 GPU'.")
+                print(
+                    "  -> Colab Instruction: Go to 'Runtime' -> 'Change runtime type' -> Select 'T4 GPU'."
+                )
             elif in_kaggle:
-                print("  -> Kaggle Instruction: Toggle 'Accelerator' -> 'GPU P100' or 'GPU T4 x2' in settings.")
+                print(
+                    "  -> Kaggle Instruction: Toggle 'Accelerator' -> 'GPU P100' or 'GPU T4 x2' in settings."
+                )
     except ImportError:
         print("[ERROR] PyTorch is not installed. Please install torch>=2.0.0.")
 
@@ -83,13 +94,17 @@ def setup_environment(
         try:
             from google.colab import drive  # type: ignore
 
-            print("[Storage] Mounting Google Drive to survive 12-hour session disconnects...")
+            print(
+                "[Storage] Mounting Google Drive to survive 12-hour session disconnects..."
+            )
             drive.mount("/content/drive", force_remount=False)
             checkpoint_dir = Path("/content/drive/MyDrive") / drive_folder
             checkpoint_dir.mkdir(parents=True, exist_ok=True)
             print(f"[Storage] Persistent Google Drive folder: {checkpoint_dir}")
         except Exception as e:
-            print(f"[Storage Warning] Could not mount Drive ({e}). Using local /content/checkpoints.")
+            print(
+                f"[Storage Warning] Could not mount Drive ({e}). Using local /content/checkpoints."
+            )
             checkpoint_dir = Path("/content/checkpoints")
             checkpoint_dir.mkdir(parents=True, exist_ok=True)
     elif in_kaggle:
