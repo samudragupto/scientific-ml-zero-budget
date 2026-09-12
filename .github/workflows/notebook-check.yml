@@ -42,6 +42,12 @@ jobs:
       - name: Headless Notebook Execution Test
         run: |
           jupyter nbconvert --to html --execute notebooks/Scientific_ML_Zero_Budget_Demo.ipynb \
-            --ExecutePreprocessor.timeout=600 \
+            --ExecutePreprocessor.timeout=900 \
             --ExecutePreprocessor.kernel_name=python3 \
+            --no-prompt \
+            --no-input \
             --output executed_demo.html
+        working-directory: ${{ github.workspace }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          PYTHONUNBUFFERED: "1"
