@@ -76,6 +76,15 @@ exclude = [
     ".venv",
     "notebooks",
 ]
+# Explicitly skip non-Python file types (belt-and-suspenders for future ruff versions)
+extend-exclude = [
+    "*.md",
+    "*.yaml",
+    "*.yml",
+    "*.toml",
+    "*.rst",
+    "*.txt",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
