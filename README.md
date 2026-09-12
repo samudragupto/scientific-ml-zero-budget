@@ -198,7 +198,7 @@ If this project helps your research or educational curriculum, please cite it:
 
 ```bibtex
 @software{nag2026scientificml,
-  author       = {Nag, Samudragupta},
+  author       = {Nag, Arrhat},
   title        = {Scientific ML on Zero Budget: Training Real Models with Free Colab/Kaggle GPUs},
   year         = {2026},
   publisher    = {GitHub},
