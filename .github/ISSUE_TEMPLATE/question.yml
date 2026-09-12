@@ -1,0 +1,31 @@
+name: Question or Discussion
+description: Ask a conceptual question about scientific ML, mixed precision, or resource limits
+title: "[QUESTION]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have questions regarding mixed precision, gradient accumulation, or Colab resource limits? Feel free to ask here!
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context & Goal
+      description: What are you working on or trying to understand?
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: Provide clear details on what concept or behavior is unclear.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What You Have Already Tried
+      description: Have you tested code snippets from `quick_reference.py` or reviewed `TECHNIQUES.md`?

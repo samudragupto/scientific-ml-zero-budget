@@ -1,0 +1,39 @@
+name: Feature Request
+description: Suggest an efficiency technique, architecture, or educational addition
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an optimization technique, dataset recipe, or educational improvement aligned with our zero-budget philosophy.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Educational Need
+      description: What challenge or concept does this feature address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / Technique
+      description: Describe the implementation approach or mathematical technique.
+    validations:
+      required: true
+
+  - type: textarea
+    id: zero_budget_fit
+    attributes:
+      label: Fit with Zero-Budget & Frugal Philosophy
+      description: How does this help users on free-tier Colab/Kaggle instances without adding unnecessary complexity?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative libraries or methods you considered?

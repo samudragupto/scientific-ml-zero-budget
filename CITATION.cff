@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you utilize this software or reference these techniques in academic research or teaching, please cite it as below."
+title: "Scientific ML on Zero Budget: Training Real Models with Free Colab/Kaggle GPUs"
+version: 0.1.0
+date-released: 2026-09-12
+license: MIT
+type: software
+repository-code: "https://github.com/samudragupto/scientific-ml-zero-budget"
+url: "https://github.com/samudragupto/scientific-ml-zero-budget"
+abstract: >-
+  A production-ready open-source research and educational toolkit demonstrating how to train real
+  scientific machine learning models within the memory, compute, and runtime constraints of free
+  cloud GPU environments (Google Colab, Kaggle). Employs automatic mixed precision, multi-step
+  gradient accumulation, resilient atomic checkpointing with complete RNG state preservation,
+  memory-mapped zero-RAM data streaming, and lightweight depthwise-separable architectures.
+authors:
+  - family-names: "Nag"
+    given-names: "Samudragupta"
+    affiliation: "Independent Researcher"
+keywords:
+  - "scientific machine learning"
+  - "deep learning"
+  - "pytorch"
+  - "google colab"
+  - "kaggle"
+  - "resource-constrained ml"
+  - "mixed precision"
+  - "gradient accumulation"
+  - "checkpointing"
+  - "resumable training"
+  - "zero budget"
+  - "frugal computing"
+  - "reproducible research"
+  - "climate ml"
+  - "scipy"
+  - "open science"

@@ -95,10 +95,16 @@ def generate_synthetic_climate_data(
         noise = rng.normal(0.0, 1.2, size=(batch_n, seq_len, num_stations, num_features)).astype("float32")
 
         batch_x = np.zeros((batch_n, seq_len, num_stations, num_features), dtype="float32")
-        batch_x[..., 0] = base_temp[..., 0] + noise[..., 0]                       # Temp
-        batch_x[..., 1] = np.clip(70.0 - 1.5 * batch_x[..., 0] + noise[..., 1] * 3, 10, 100) # Humidity
-        batch_x[..., 2] = 1013.25 - 0.12 * station_bias[..., 0] + noise[..., 2]  # Pressure
-        batch_x[..., 3] = np.abs(5.0 + noise[..., 3] * 2.5)                       # Wind
+        if num_features >= 1:
+            batch_x[..., 0] = base_temp[..., 0] + noise[..., 0]                       # Temp
+        if num_features >= 2:
+            batch_x[..., 1] = np.clip(70.0 - 1.5 * batch_x[..., 0] + noise[..., 1] * 3, 10, 100) # Humidity
+        if num_features >= 3:
+            batch_x[..., 2] = 1013.25 - 0.12 * station_bias[..., 0] + noise[..., 2]  # Pressure
+        if num_features >= 4:
+            batch_x[..., 3] = np.abs(5.0 + noise[..., 3] * 2.5)                       # Wind
+        for f in range(4, num_features):
+            batch_x[..., f] = noise[..., f]
 
         # Target: Forecast station temperatures at t + seq_len
         next_t = (end - 1) if end == num_samples else (start + batch_n)

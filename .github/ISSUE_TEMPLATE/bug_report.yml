@@ -1,0 +1,60 @@
+name: Bug Report
+description: Report a bug, unexpected crash, or CUDA OOM issue
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide as much detail as possible to help us reproduce the behavior.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact steps or command line to reproduce the behavior.
+      placeholder: |
+        1. Run `python main_demo.py`
+        2. Set batch size to ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment & Hardware
+      description: Where were you running this code?
+      placeholder: |
+        - Environment: [e.g. Google Colab (Free T4), Kaggle (P100), Local Windows/Linux]
+        - OS: [e.g. Ubuntu 22.04, Windows 11]
+        - Python Version: [e.g. 3.10.12]
+        - PyTorch Version: [e.g. 2.1.0+cu121]
+        - Available GPU VRAM: [e.g. 15.0 GB]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Traceback / Logs
+      description: Please copy and paste the complete traceback or console output.
+      render: shell
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Checklist
+      options:
+        - label: I have verified this is not already documented in TROUBLESHOOTING.md
+          required: true
+        - label: I have searched existing GitHub issues to ensure this is not a duplicate
+          required: true

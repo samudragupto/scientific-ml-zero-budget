@@ -63,13 +63,26 @@ sciml_checkpoints/
 *.onnx
 *.safetensors
 
-# Logs & Performance Profiles
+# Experiment Trackers & Profilers
+wandb/
+runs/
+outputs/
+lightning_logs/
+tb_logs/
+mlruns/
+profile_*/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Logs & Temporary Runs
 *.log
 *.prof
-*.coverage
-htmlcov/
-.pytest_cache/
-.tox/
+*.tmp*
+nohup.out
 
 # Local Environment & Secrets
 .env
